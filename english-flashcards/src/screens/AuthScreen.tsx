@@ -16,19 +16,24 @@ export default function AuthScreen() {
 
     setLoading(true);
     try {
+      // Auto-append fake domain if not an email, to support "username" login
+      const finalEmail = email.includes('@') ? email : `${email}@flashcards.local`;
+
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: finalEmail,
           password,
         });
         if (error) throw error;
       } else {
         const { error } = await supabase.auth.signUp({
-          email,
+          email: finalEmail,
           password,
         });
         if (error) throw error;
-        Alert.alert('注册成功', '请检查邮箱并完成验证（如果开启了邮箱验证），或直接登录。');
+        // Since we disabled email confirmation in Supabase dashboard (assumed), 
+        // or we use a fake email, we can tell user to login.
+        Alert.alert('注册成功', '账号已创建，系统将自动登录。');
       }
     } catch (error: any) {
       Alert.alert('操作失败', error.message);
@@ -49,16 +54,18 @@ export default function AuthScreen() {
 
           <TextInput
             style={styles.input}
-            placeholder="邮箱 (Email)"
+            placeholder="用户名 (Username)"
+            placeholderTextColor="#94a3b8"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
-            keyboardType="email-address"
+            // keyboardType="email-address" // Remove strict email keyboard
           />
           
           <TextInput
             style={styles.input}
             placeholder="密码 (Password)"
+            placeholderTextColor="#94a3b8"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -127,10 +134,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 8,
-    padding: 14,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 18, // Increased vertical padding for better height
     fontSize: 16,
-    marginBottom: 16,
+    marginBottom: 20, // Increased margin
+    color: '#1e293b', // Ensure text color is visible
+    minHeight: 56, // Ensure minimum height
   },
   button: {
     backgroundColor: '#2563eb',
