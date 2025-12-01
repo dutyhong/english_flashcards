@@ -15,13 +15,18 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.duty.englishflashcards"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.duty.englishflashcards",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,7 +39,11 @@
           "cameraPermission": "The app accesses your camera to let you capture text."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a3ba9906-757f-4eff-8915-a40238cd7b46"
+      }
+    }
   }
 }
-
