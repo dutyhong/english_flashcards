@@ -1,15 +1,141 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Platform, Alert, ViewStyle, TextStyle } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Volume2, Trash2 } from 'lucide-react-native';
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
-import { ReviewWord, useStore } from '../store/useStore';
+import { ReviewWord, useStore, WordStatus } from '../store/useStore';
+
+// Define styles as plain object to avoid runtime errors
+const styles = {
+  container: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+  } as ViewStyle,
+  content: {
+    padding: 16,
+  } as ViewStyle,
+  headerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    alignItems: 'center',
+  } as ViewStyle,
+  wordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  } as ViewStyle,
+  word: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#0f172a',
+    marginRight: 12,
+  } as TextStyle,
+  audioButton: {
+    padding: 8,
+    backgroundColor: '#eff6ff',
+    borderRadius: 50,
+  } as ViewStyle,
+  phoneticRow: {
+    marginBottom: 16,
+  } as ViewStyle,
+  phonetic: {
+    fontSize: 18,
+    color: '#64748b',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+    overflow: 'hidden',
+  } as TextStyle,
+  meaning: {
+    fontSize: 20,
+    color: '#334155',
+    fontWeight: '600',
+    textAlign: 'center',
+  } as TextStyle,
+  statusButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  } as ViewStyle,
+  statusButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  } as ViewStyle,
+  statusButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  } as TextStyle,
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#94a3b8',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginLeft: 4,
+  } as TextStyle,
+  sentenceBlock: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  } as ViewStyle,
+  enSentence: {
+    fontSize: 18,
+    color: '#1e293b',
+    marginBottom: 8,
+    lineHeight: 26,
+    fontWeight: '500',
+  } as TextStyle,
+  cnSentence: {
+    fontSize: 16,
+    color: '#475569',
+    marginBottom: 8,
+  } as TextStyle,
+  explanation: {
+    fontSize: 14,
+    color: '#2563eb',
+    fontStyle: 'italic',
+    marginTop: 4,
+  } as TextStyle,
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#fee2e2',
+    borderRadius: 12,
+    marginTop: 20,
+  } as ViewStyle,
+  deleteText: {
+    color: '#ef4444',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  } as TextStyle
+};
 
 export default function WordDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { removeWord } = useStore();
+  const { removeWord, updateWordStatus } = useStore();
   
   // @ts-ignore - route params are not typed strictly yet
   const { word } = route.params as { word: ReviewWord };
@@ -53,6 +179,11 @@ export default function WordDetailScreen() {
     }
   };
 
+  const handleStatusUpdate = async (status: WordStatus) => {
+    await updateWordStatus(word.id, status);
+    Alert.alert("状态更新", "单词熟练度已更新");
+  };
+
   const handleDelete = async () => {
     Alert.alert(
       "删除单词",
@@ -88,6 +219,29 @@ export default function WordDetailScreen() {
         <Text style={styles.meaning}>{word.meaning}</Text>
       </View>
 
+      <View style={styles.statusButtonsContainer}>
+        <TouchableOpacity 
+            style={[styles.statusButton, { backgroundColor: '#dcfce7' }]} 
+            onPress={() => handleStatusUpdate('mastered')}
+        >
+            <Text style={[styles.statusButtonText, { color: '#166534' }]}>🟢 熟练</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+            style={[styles.statusButton, { backgroundColor: '#fef9c3' }]} 
+            onPress={() => handleStatusUpdate('review')}
+        >
+            <Text style={[styles.statusButtonText, { color: '#854d0e' }]}>🟡 模糊</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+            style={[styles.statusButton, { backgroundColor: '#fee2e2' }]} 
+            onPress={() => handleStatusUpdate('forgot')}
+        >
+            <Text style={[styles.statusButtonText, { color: '#991b1b' }]}>🔴 忘记</Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.sectionTitle}>例句解析</Text>
       
       {word.sentences.map((sent, idx) => (
@@ -105,111 +259,3 @@ export default function WordDetailScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f1f5f9',
-  },
-  content: {
-    padding: 16,
-  },
-  headerCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    alignItems: 'center',
-  },
-  wordRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  word: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#0f172a',
-    marginRight: 12,
-  },
-  audioButton: {
-    padding: 8,
-    backgroundColor: '#eff6ff',
-    borderRadius: 50,
-  },
-  phoneticRow: {
-    marginBottom: 16,
-  },
-  phonetic: {
-    fontSize: 18,
-    color: '#64748b',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  meaning: {
-    fontSize: 20,
-    color: '#334155',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#94a3b8',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginLeft: 4,
-  },
-  sentenceBlock: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  enSentence: {
-    fontSize: 18,
-    color: '#1e293b',
-    marginBottom: 8,
-    lineHeight: 26,
-    fontWeight: '500',
-  },
-  cnSentence: {
-    fontSize: 16,
-    color: '#475569',
-    marginBottom: 8,
-  },
-  explanation: {
-    fontSize: 14,
-    color: '#2563eb',
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    backgroundColor: '#fee2e2',
-    borderRadius: 12,
-    marginTop: 20,
-  },
-  deleteText: {
-    color: '#ef4444',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  }
-});
-

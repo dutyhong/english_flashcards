@@ -26,14 +26,29 @@ export default function AuthScreen() {
         });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: finalEmail,
           password,
         });
         if (error) throw error;
-        // Since we disabled email confirmation in Supabase dashboard (assumed), 
-        // or we use a fake email, we can tell user to login.
-        Alert.alert('注册成功', '账号已创建，系统将自动登录。');
+        
+        // Explicitly sign out to prevent auto-login
+        await supabase.auth.signOut();
+        
+        Alert.alert(
+          '注册成功', 
+          '账号创建成功！\n请使用刚才的用户名和密码登录。',
+          [
+            {
+              text: '去登录',
+              onPress: () => {
+                setIsLogin(true); // Switch to login mode
+                // We keep the email filled, but user might need to re-enter password depending on UX preference.
+                // Usually password field is cleared or kept. Let's keep it for convenience but require button press.
+              }
+            }
+          ]
+        );
       }
     } catch (error: any) {
       Alert.alert('操作失败', error.message);
@@ -70,6 +85,17 @@ export default function AuthScreen() {
             onChangeText={setPassword}
             secureTextEntry
           />
+
+          {/* Warning Message */}
+          <View style={styles.warningContainer}>
+            <Text style={styles.warningText}>
+              ⚠️ 请务必记住您的用户名和密码。
+            </Text>
+            <Text style={styles.warningSubText}>
+              由于无需绑定手机/邮箱，一旦忘记将无法找回账号！建议注册后在设置中绑定真实邮箱。
+            </Text>
+          </View>
+
 
           <TouchableOpacity 
             style={[styles.button, loading && styles.disabledButton]} 
@@ -141,6 +167,25 @@ const styles = StyleSheet.create({
     marginBottom: 20, // Increased margin
     color: '#1e293b', // Ensure text color is visible
     minHeight: 56, // Ensure minimum height
+  },
+  warningContainer: {
+    marginBottom: 16,
+    backgroundColor: '#fff1f2',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+  },
+  warningText: {
+    color: '#be123c',
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  warningSubText: {
+    color: '#be123c',
+    fontSize: 12,
+    lineHeight: 16,
   },
   button: {
     backgroundColor: '#2563eb',

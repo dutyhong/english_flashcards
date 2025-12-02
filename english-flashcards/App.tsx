@@ -57,6 +57,17 @@ function MainTabs() {
         name="Scan" 
         component={ScanStackNavigator} 
         options={{ headerShown: false, title: '识别' }} 
+        listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              // Prevent default action
+              e.preventDefault();
+              
+              // Navigate to the Scan tab, but reset to the initial route
+              navigation.navigate('Scan', {
+                screen: 'ScanInput'
+              });
+            },
+        })}
       />
       <Tab.Screen 
         name="Review" 

@@ -1,10 +1,57 @@
-import React from 'react';
-import { View, Text, StyleSheet, TextInput, Switch, ScrollView, TouchableOpacity, Linking, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, Switch, ScrollView, TouchableOpacity, Linking, Alert, ActivityIndicator } from 'react-native';
 import { useStore } from '../store/useStore';
-import { Key, Info, ExternalLink, Trash2 } from 'lucide-react-native';
+import { Key, Info, ExternalLink, Trash2, Mail, LogOut } from 'lucide-react-native';
+import { supabase } from '../lib/supabase';
 
 export default function SettingsScreen() {
-  const { apiKey, setApiKey, isDemoMode, setDemoMode, clearAllWords } = useStore();
+  const { apiKey, setApiKey, isDemoMode, setDemoMode, clearAllWords, session } = useStore();
+  const [newEmail, setNewEmail] = useState('');
+  const [bindingLoading, setBindingLoading] = useState(false);
+
+  // Check if current email is a fake one
+  const isFakeEmail = session?.user?.email?.endsWith('@flashcards.local');
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "退出登录",
+      "确定要退出当前账号吗？",
+      [
+        { text: "取消", style: "cancel" },
+        { 
+          text: "退出", 
+          style: "destructive",
+          onPress: async () => {
+            await supabase.auth.signOut();
+          }
+        }
+      ]
+    );
+  };
+
+  const handleBindEmail = async () => {
+    if (!newEmail.includes('@') || !newEmail.includes('.')) {
+      Alert.alert("错误", "请输入有效的邮箱地址");
+      return;
+    }
+
+    setBindingLoading(true);
+    try {
+      // @ts-ignore
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) throw error;
+      
+      Alert.alert(
+        "验证邮件已发送",
+        `请前往 ${newEmail} 查收验证邮件。点击邮件中的链接后，您的绑定邮箱将更新，以后可以用新邮箱找回密码。`
+      );
+      setNewEmail('');
+    } catch (error: any) {
+      Alert.alert("绑定失败", error.message);
+    } finally {
+      setBindingLoading(false);
+    }
+  };
 
   const handleClearData = () => {
     Alert.alert(
@@ -48,6 +95,44 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* Bind Real Email Section - Only show if user is using fake email */}
+      {isFakeEmail && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Mail size={20} color="#f59e0b" />
+            <Text style={styles.sectionTitle}>账号安全</Text>
+          </View>
+          
+          <View style={styles.card}>
+            <Text style={styles.label}>绑定密保邮箱</Text>
+            <Text style={styles.description}>
+              您当前使用的是仅用户名登录。建议绑定真实邮箱，以便在忘记密码时找回账号。
+            </Text>
+            
+            <TextInput
+              style={styles.input}
+              placeholder="输入您的真实邮箱 (例如 qq.com)"
+              value={newEmail}
+              onChangeText={setNewEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            
+            <TouchableOpacity 
+              style={styles.bindButton}
+              onPress={handleBindEmail}
+              disabled={bindingLoading}
+            >
+              {bindingLoading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.bindButtonText}>发送绑定验证邮件</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       <View style={[styles.section, isDemoMode && styles.disabledSection]}>
         <View style={styles.sectionHeader}>
           <Key size={20} color="#2563eb" />
@@ -86,6 +171,13 @@ export default function SettingsScreen() {
         </View>
         <TouchableOpacity style={styles.dangerButton} onPress={handleClearData}>
           <Text style={styles.dangerButtonText}>清空复习列表</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <LogOut size={20} color="#64748b" style={{ marginRight: 8 }} />
+          <Text style={styles.logoutButtonText}>退出登录</Text>
         </TouchableOpacity>
       </View>
 
@@ -166,6 +258,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginRight: 4,
   },
+  bindButton: {
+    backgroundColor: '#f59e0b',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  bindButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
   disabledSection: {
     opacity: 0.5,
   },
@@ -179,6 +283,19 @@ const styles = StyleSheet.create({
   },
   dangerButtonText: {
     color: '#ef4444',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#e2e8f0',
+    padding: 16,
+    borderRadius: 12,
+  },
+  logoutButtonText: {
+    color: '#475569',
     fontWeight: 'bold',
     fontSize: 16,
   },

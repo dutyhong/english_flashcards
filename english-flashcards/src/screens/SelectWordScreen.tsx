@@ -49,7 +49,10 @@ export default function SelectWordScreen() {
       }
       
       Alert.alert("添加成功", "已将单词加入复习列表", [
-        { text: "OK", onPress: () => navigation.navigate('Review') }
+        { 
+          text: "OK", 
+          onPress: () => navigation.navigate('Review') 
+        }
       ]);
     } catch (error) {
       Alert.alert("Error", "处理过程中发生错误");

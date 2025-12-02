@@ -4,6 +4,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 
+// Define status types
+export type WordStatus = 'new' | 'mastered' | 'review' | 'forgot';
+
 export interface ReviewWord {
   id: string;
   word: string;
@@ -15,6 +18,7 @@ export interface ReviewWord {
     explanation: string;
   }[];
   dateAdded: number;
+  status: WordStatus; // Add status field
 }
 
 interface AppState {
@@ -28,8 +32,9 @@ interface AppState {
   loading: boolean;
   
   fetchWords: () => Promise<void>;
-  addWord: (word: Omit<ReviewWord, 'id' | 'dateAdded'>) => Promise<void>;
+  addWord: (word: Omit<ReviewWord, 'id' | 'dateAdded' | 'status'>) => Promise<void>; // Updated signature
   removeWord: (id: string) => Promise<void>;
+  updateWordStatus: (id: string, status: WordStatus) => Promise<void>; // New action
   clearAllWords: () => Promise<void>;
   
   isDemoMode: boolean;
@@ -79,6 +84,8 @@ export const useStore = create<AppState>()(
             pronunciation: row.content.pronunciation,
             sentences: row.content.sentences,
             dateAdded: new Date(row.created_at).getTime(),
+            // Use database status if exists, fallback to 'new' if column is missing/null
+            status: row.status || 'new', 
           }));
           set({ reviewList: words });
         }
@@ -98,6 +105,7 @@ export const useStore = create<AppState>()(
             const newWord: ReviewWord = {
                 id: Date.now().toString(),
                 dateAdded: Date.now(),
+                status: 'new',
                 ...wordDetail
             };
             set({ reviewList: [newWord, ...reviewList] });
@@ -109,6 +117,7 @@ export const useStore = create<AppState>()(
           .insert({
             userid: session.user.id,
             content: wordDetail, // Store the whole JSON object
+            status: 'new', // Default status
           })
           .select()
           .single();
@@ -123,6 +132,7 @@ export const useStore = create<AppState>()(
             pronunciation: data.content.pronunciation,
             sentences: data.content.sentences,
             dateAdded: new Date(data.created_at).getTime(),
+            status: data.status || 'new',
           };
           set({ reviewList: [newWord, ...reviewList] });
         }
@@ -141,6 +151,26 @@ export const useStore = create<AppState>()(
           console.error('Delete word error:', error);
         } else {
           set({ reviewList: reviewList.filter((w) => w.id !== id) });
+        }
+      },
+
+      updateWordStatus: async (id, status) => {
+        const { session, reviewList } = get();
+        
+        // Optimistic update locally
+        const updatedList = reviewList.map(w => w.id === id ? { ...w, status } : w);
+        set({ reviewList: updatedList });
+
+        if (!session) return; // Demo mode, local only
+
+        const { error } = await supabase
+            .from('user_words')
+            .update({ status })
+            .eq('id', id);
+            
+        if (error) {
+            console.error('Update status error:', error);
+            // Revert on error (optional, keeping it simple for now)
         }
       },
 

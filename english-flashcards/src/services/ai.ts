@@ -113,7 +113,8 @@ export const AIService = {
       const jsonString = jsonMatch ? jsonMatch[0] : cleanContent;
       
       const words = JSON.parse(jsonString);
-      return Array.isArray(words) ? words : [];
+      // Ensure we return an array and convert all words to lowercase for consistency
+      return Array.isArray(words) ? words.map((w: string) => w.toLowerCase()) : [];
       
     } catch (error) {
       console.error('OCR Error:', error);
