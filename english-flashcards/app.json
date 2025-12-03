@@ -25,6 +25,7 @@
       },
       "package": "com.duty.englishflashcards",
       "permissions": [
+        "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -44,6 +45,12 @@
       "eas": {
         "projectId": "a3ba9906-757f-4eff-8915-a40238cd7b46"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a3ba9906-757f-4eff-8915-a40238cd7b46"
     }
   }
 }
